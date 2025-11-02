@@ -37,5 +37,5 @@ async def alocal_playwright_fetch(params: Dict[str, str]) -> DummyResponse:
     body = await afetch_with_playwright(url)
     return DummyResponse(body)
 
-async def local_playwright_fetch(params: Dict[str, str]) -> DummyResponse:
+def local_playwright_fetch(params: Dict[str, str]) -> DummyResponse:
     return asyncio.run(alocal_playwright_fetch(params))
