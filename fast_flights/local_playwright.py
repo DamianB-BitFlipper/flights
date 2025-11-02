@@ -7,15 +7,22 @@ async def fetch_with_playwright(url: str) -> str:
         browser = await p.chromium.launch()
         page = await browser.new_page()
         await page.goto(url)
+
+        # Handle Google consent page if shown
         if page.url.startswith("https://consent.google.com"):
             await page.click('text="Accept all"')
-        locator = page.locator('.eQ35Ce')
-        await locator.wait_for()
+
+        # Wait until page finishes all requests
+        await page.wait_for_load_state("networkidle")
+
+        # Extract the main HTML content
         body = await page.evaluate(
             "() => document.querySelector('[role=\"main\"]').innerHTML"
         )
+
         await browser.close()
     return body
+
 
 def local_playwright_fetch(params: dict) -> Any:
     url = "https://www.google.com/travel/flights?" + "&".join(f"{k}={v}" for k, v in params.items())
