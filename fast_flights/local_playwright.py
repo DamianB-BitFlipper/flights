@@ -1,8 +1,16 @@
-from typing import Any
+from typing import Dict
 import asyncio
 from playwright.async_api import async_playwright
 
-async def fetch_with_playwright(url: str) -> str:
+
+class DummyResponse:
+    def __init__(self, body: str) -> None:
+        self.status_code: int = 200
+        self.text: str = body
+        self.text_markdown: str = body
+
+
+async def afetch_with_playwright(url: str) -> str:
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page()
@@ -21,16 +29,13 @@ async def fetch_with_playwright(url: str) -> str:
         )
 
         await browser.close()
-    return body
+        return body
 
 
-def local_playwright_fetch(params: dict) -> Any:
+async def alocal_playwright_fetch(params: Dict[str, str]) -> DummyResponse:
     url = "https://www.google.com/travel/flights?" + "&".join(f"{k}={v}" for k, v in params.items())
-    body = asyncio.run(fetch_with_playwright(url))
+    body = await afetch_with_playwright(url)
+    return DummyResponse(body)
 
-    class DummyResponse:
-        status_code = 200
-        text = body
-        text_markdown = body
-
-    return DummyResponse
+async def local_playwright_fetch(params: Dict[str, str]) -> DummyResponse:
+    return asyncio.run(alocal_playwright_fetch(params))

@@ -9,6 +9,7 @@ from .schema import Flight, Result
 from .flights_impl import FlightData, Passengers
 from .filter import TFSData
 from .fallback_playwright import fallback_playwright_fetch
+from .local_playwright import local_playwright_fetch, alocal_playwright_fetch
 from .bright_data_fetch import bright_data_fetch
 from .primp import Client, Response
 
@@ -63,15 +64,10 @@ def get_flights_from_filter(
                 res = fallback_playwright_fetch(params)
             else:
                 raise e
-
     elif mode == "local":
-        from .local_playwright import local_playwright_fetch
-
         res = local_playwright_fetch(params)
-
     elif mode == "bright-data":
         res = bright_data_fetch(params)
-
     else:
         res = fallback_playwright_fetch(params)
 
@@ -105,6 +101,50 @@ def get_flights(
         data_source=data_source,
     )
 
+async def aget_flights_from_filter(
+    filter: TFSData,
+    currency: str = "",
+    *,
+    mode: Literal["local"] = "local",
+    data_source: DataSource = 'html',
+) -> Union[Result, DecodedResult, None]:
+    if mode != "local":
+        raise NotImplementedError(
+            f"Async fetch only supports mode='local'. Tried mode='{mode}'"
+        )
+
+    params = {
+        "tfs": filter.as_b64().decode("utf-8"),
+        "hl": "en",
+        "tfu": "EgQIABABIgA",
+        "curr": currency,
+    }
+
+    res: Response = await alocal_playwright_fetch(params)
+    return parse_response(res, data_source)
+
+
+async def aget_flights(
+    *,
+    flight_data: List[FlightData],
+    trip: Literal["round-trip", "one-way", "multi-city"],
+    passengers: Passengers,
+    seat: Literal["economy", "premium-economy", "business", "first"],
+    fetch_mode: Literal["local"] = "local",
+    max_stops: Optional[int] = None,
+    data_source: DataSource = 'html',
+) -> Union[Result, DecodedResult, None]:
+    return await aget_flights_from_filter(
+        TFSData.from_interface(
+            flight_data=flight_data,
+            trip=trip,
+            passengers=passengers,
+            seat=seat,
+            max_stops=max_stops,
+        ),
+        mode=fetch_mode,
+        data_source=data_source,
+    )
 
 def parse_response(
     r: Response,
